@@ -12,16 +12,16 @@ CREATE_TABLE_SQL = "CREATE TABLE {name} ({fields});"
 
 class Database:
 
-    def __init__(self, path : str ) -> None:
+    def __init__(self, path):
         self.conn = sqlite3.connect(path)
 
-    def _execute(self, sql : str, params=None) -> None: # дописать тип params
+    def _execute(self, sql, params=None): # дописать тип params
         if params:
             self.conn.execute(sql, params)
         else:
             self.conn.execute(sql)
 
-    def create(self, table) -> None:
+    def create(self, table):
         print(table._get_create_sql())
         self._execute(table._get_create_sql())
 
@@ -30,11 +30,11 @@ class Database:
 class Table:
 
     @classmethod
-    def _get_name(cls) -> str:
+    def _get_name(cls):
         return cls.__name__.lower()
 
     @classmethod
-    def _get_create_sql(cls) -> str:
+    def _get_create_sql(cls):
         fields = [
             ("id", "INTEGER PRIMARY KEY AUTOINCREMENT")
         ]
@@ -51,16 +51,16 @@ class Table:
 
 class Column:
 
-    def __init__(self, type) -> None: # разобраться как прописать аннотацию type
+    def __init__(self, type): # разобраться как прописать аннотацию type
         self.type = type
 
     @property
-    def sql_type(self) -> str:
+    def sql_type(self):
         return SQLITE_TYPE_MAP[self.type]
 
 class ForeignKey:
 
-    def __init__(self, table) -> None:
+    def __init__(self, table):
         self.table = table
 
 if __name__ == '__main__':
