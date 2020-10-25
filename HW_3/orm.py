@@ -12,6 +12,7 @@ INSERT_SQL = "INSERT INTO {name} ({fields}) VALUES ({placeholders});"
 SELECT_ALL_SQL = "SELECT * FROM {name};"
 SELECT_WHERE_SQL = "SELECT * FROM {name} WHERE id=?;"
 UPDATE_SQL = "UPDATE {table_name} SET {query} WHERE id=?;"
+DELETE_SQL = "DELETE FROM {name} WHERE id=?"
 
 
 class Database:
@@ -58,13 +59,23 @@ class Database:
         self._execute(sql, (instance._id,))
         self.conn.commit()
 
+    def delete(self, instance):
+        sql = instance._get_delete_sql()
+        self._execute(sql, (instance._id,))
+        instance._id = None
+        self.conn.commit()
 
 
 class Table:
     _size = 0
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         self._id = None
+        for name, value in kwargs.items():
+            if name in self.__class__.__dict__:
+                self.__dict__[name] = value
+            else:
+                raise ValueError("В таблице нет такого столбца")
 
     @classmethod
     def _get_name(cls):
@@ -75,11 +86,9 @@ class Table:
         fields = [
             ("id", "INTEGER PRIMARY KEY AUTOINCREMENT")
         ]
-
         for name, field in inspect.getmembers(cls):
             if isinstance(field, Column):
                 fields.append((name, field.sql_type))
-
         fields = [" ".join(x) for x in fields]
         return CREATE_TABLE_SQL.format(name=cls._get_name(),
                                        fields=", ".join(fields))
@@ -89,17 +98,16 @@ class Table:
         fields = []
         placeholders = []
         values = []
-
         for name, field in inspect.getmembers(cls):
             if isinstance(field, Column):
+                if isinstance(getattr(self, name), Column):
+                    raise ValueError("Не задано значение колонки")
                 fields.append(name)
                 values.append(getattr(self, name))
                 placeholders.append('?')
-
         sql = INSERT_SQL.format(name=cls._get_name(),
                                 fields=", ".join(fields),
                                 placeholders=", ".join(placeholders))
-
         return sql, values
 
     @classmethod
@@ -115,21 +123,20 @@ class Table:
     def _get_update_sql(self):
         cls = self.__class__
         query = []
-
         for name, field in inspect.getmembers(cls):
             if isinstance(field, Column):
-                if isinstance(getattr(self, name), str):
+                if isinstance(getattr(self, name), Column):
+                    raise ValueError("Не задано значение колонки")
+                elif isinstance(getattr(self, name), str):
                     query.append("{name}='{val}'".format(name=name, val=getattr(self, name)))
                 else:
                     query.append("{name}={val}".format(name=name, val=getattr(self, name)))
-
-        sql = UPDATE_SQL.format(table_name=cls._get_name(),
+        sql = UPDATE_SQL.format(table_name=self._get_name(),
                                 query=", ".join(query))
-
         return sql
 
-
-
+    def _get_delete_sql(self):
+        return DELETE_SQL.format(name=self._get_name())
 
 class Column:
 
