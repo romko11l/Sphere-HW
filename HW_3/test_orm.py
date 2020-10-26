@@ -54,8 +54,10 @@ class TestTable(unittest.TestCase):
         self.assertEqual(Author.get_name(), 'author')
 
     def test_get_create_sql(self):
-        res1 = 'CREATE TABLE author (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, surname TEXT);'
-        res2 = 'CREATE TABLE book (id INTEGER PRIMARY KEY AUTOINCREMENT, ISBN TEXT, author_id INTEGER, cost REAL, in_stock INTEGER);'
+        res1 = 'CREATE TABLE author (id INTEGER PRIMARY KEY AUTOINCREMENT, \
+name TEXT, surname TEXT);'
+        res2 = 'CREATE TABLE book (id INTEGER PRIMARY KEY AUTOINCREMENT, \
+ISBN TEXT, author_id INTEGER, cost REAL, in_stock INTEGER);'
 
         self.assertEqual(Author.get_create_sql(), res1)
         self.assertEqual(Book.get_create_sql(), res2)
