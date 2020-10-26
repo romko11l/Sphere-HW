@@ -20,47 +20,46 @@ class Database:
     def __init__(self, path):
         self.conn = sqlite3.connect(path)
 
-    def _execute(self, sql, params=None): # дописать тип params
-        print(sql, params)
+    def _execute(self, sql, params=None):
         if params:
             self.conn.execute(sql, params)
         else:
             self.conn.execute(sql)
 
     def create(self, table):
-        self._execute(table._get_create_sql())
+        self._execute(table.get_create_sql())
 
     def add(self, instance):
         if instance._id is not None:
             raise ValueError("Этот объект уже занесён в БД")
+        sql, values = instance.get_insert_sql()
+        self._execute(sql, values)
         instance.__class__._size += 1
         instance._id = instance.__class__._size
-        sql, values = instance._get_insert_sql()
-        self._execute(sql, values)
         self.conn.commit()
 
     def all(self, table):
         result = []
-        sql = table._get_select_all_sql()
+        sql = table.get_select_all_sql()
         for row in self.conn.execute(sql):
             result.append(row)
         return result
 
-    def get(self, table, id):
+    def get(self, table, record_id):
         result = []
-        sql = table._get_select_where_sql()
-        params = str(id)
+        sql = table.get_select_where_sql()
+        params = (str(record_id),)
         for row in self.conn.execute(sql, params):
             result.append(row)
         return result
 
     def update(self, instance):
-        sql = instance._get_update_sql()
+        sql = instance.get_update_sql()
         self._execute(sql, (instance._id,))
         self.conn.commit()
 
     def delete(self, instance):
-        sql = instance._get_delete_sql()
+        sql = instance.get_delete_sql()
         self._execute(sql, (instance._id,))
         instance._id = None
         self.conn.commit()
@@ -78,11 +77,11 @@ class Table:
                 raise ValueError("В таблице нет такого столбца")
 
     @classmethod
-    def _get_name(cls):
+    def get_name(cls):
         return cls.__name__.lower()
 
     @classmethod
-    def _get_create_sql(cls):
+    def get_create_sql(cls):
         fields = [
             ("id", "INTEGER PRIMARY KEY AUTOINCREMENT")
         ]
@@ -90,10 +89,10 @@ class Table:
             if isinstance(field, Column):
                 fields.append((name, field.sql_type))
         fields = [" ".join(x) for x in fields]
-        return CREATE_TABLE_SQL.format(name=cls._get_name(),
+        return CREATE_TABLE_SQL.format(name=cls.get_name(),
                                        fields=", ".join(fields))
 
-    def _get_insert_sql(self):
+    def get_insert_sql(self):
         cls = self.__class__
         fields = []
         placeholders = []
@@ -105,47 +104,48 @@ class Table:
                 fields.append(name)
                 values.append(getattr(self, name))
                 placeholders.append('?')
-        sql = INSERT_SQL.format(name=cls._get_name(),
+        sql = INSERT_SQL.format(name=cls.get_name(),
                                 fields=", ".join(fields),
                                 placeholders=", ".join(placeholders))
         return sql, values
 
     @classmethod
-    def _get_select_all_sql(cls):
-        sql = SELECT_ALL_SQL.format(name=cls._get_name())
+    def get_select_all_sql(cls):
+        sql = SELECT_ALL_SQL.format(name=cls.get_name())
         return sql
 
     @classmethod
-    def _get_select_where_sql(cls):
-        sql = SELECT_WHERE_SQL.format(name=cls._get_name())
+    def get_select_where_sql(cls):
+        sql = SELECT_WHERE_SQL.format(name=cls.get_name())
         return sql
 
-    def _get_update_sql(self):
+    def get_update_sql(self):
         cls = self.__class__
         query = []
         for name, field in inspect.getmembers(cls):
             if isinstance(field, Column):
                 if isinstance(getattr(self, name), Column):
                     raise ValueError("Не задано значение колонки")
-                elif isinstance(getattr(self, name), str):
+                if isinstance(getattr(self, name), str):
                     query.append("{name}='{val}'".format(name=name, val=getattr(self, name)))
                 else:
                     query.append("{name}={val}".format(name=name, val=getattr(self, name)))
-        sql = UPDATE_SQL.format(table_name=self._get_name(),
+        sql = UPDATE_SQL.format(table_name=self.get_name(),
                                 query=", ".join(query))
         return sql
 
-    def _get_delete_sql(self):
-        return DELETE_SQL.format(name=self._get_name())
+    def get_delete_sql(self):
+        return DELETE_SQL.format(name=self.get_name())
+
 
 class Column:
 
-    def __init__(self, type): # разобраться как прописать аннотацию type
-        self.type = type
+    def __init__(self, column_type):
+        self._type = column_type
 
     @property
     def sql_type(self):
-        return SQLITE_TYPE_MAP[self.type]
+        return SQLITE_TYPE_MAP[self._type]
 
 
 if __name__ == '__main__':

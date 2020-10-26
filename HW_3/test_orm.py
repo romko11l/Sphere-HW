@@ -44,16 +44,16 @@ class TestTable(unittest.TestCase):
         tolstoy = Author()
         anna_karenina = Book()
 
-        self.assertEqual(tolstoy._get_name(), 'author')
-        self.assertEqual(anna_karenina._get_name(), 'book')
-        self.assertEqual(Author._get_name(), 'author')
+        self.assertEqual(tolstoy.get_name(), 'author')
+        self.assertEqual(anna_karenina.get_name(), 'book')
+        self.assertEqual(Author.get_name(), 'author')
 
     def test_get_create_sql(self):
         res1 = 'CREATE TABLE author (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, surname TEXT);'
         res2 = 'CREATE TABLE book (id INTEGER PRIMARY KEY AUTOINCREMENT, ISBN TEXT, author_id INTEGER, cost REAL, in_stock INTEGER);'
 
-        self.assertEqual(Author._get_create_sql(), res1)
-        self.assertEqual(Book._get_create_sql(), res2)
+        self.assertEqual(Author.get_create_sql(), res1)
+        self.assertEqual(Book.get_create_sql(), res2)
 
     def test_get_insert_sql(self):
         tolstoy = Author(name='Lev', surname='Tolstoy')
@@ -61,38 +61,141 @@ class TestTable(unittest.TestCase):
         res1=('INSERT INTO author (name, surname) VALUES (?, ?);',
              ['Lev', 'Tolstoy'])
 
-        self.assertEqual(tolstoy._get_insert_sql(), res1)
+        self.assertEqual(tolstoy.get_insert_sql(), res1)
 
-        self.assertRaises(ValueError, pushkin._get_insert_sql)
+        self.assertRaises(ValueError, pushkin.get_insert_sql)
 
     def test_get_select_all_sql(self):
         res1 = 'SELECT * FROM author;'
         res2 = 'SELECT * FROM book;'
 
-        self.assertEqual(Author._get_select_all_sql(), res1)
-        self.assertEqual(Book._get_select_all_sql(), res2)
+        self.assertEqual(Author.get_select_all_sql(), res1)
+        self.assertEqual(Book.get_select_all_sql(), res2)
 
     def test_get_select_where_sql(self):
         res1 = 'SELECT * FROM author WHERE id=?;'
         res2 = 'SELECT * FROM book WHERE id=?;'
 
-        self.assertEqual(Author._get_select_where_sql(), res1)
-        self.assertEqual(Book._get_select_where_sql(), res2)
+        self.assertEqual(Author.get_select_where_sql(), res1)
+        self.assertEqual(Book.get_select_where_sql(), res2)
 
     def test_get_update_sql(self):
         tolstoy = Author(name='Lev', surname='Tolstoy')
         pushkin = Author(name='Alexander')
         res1 = "UPDATE author SET name='Lev', surname='Tolstoy' WHERE id=?;"
 
-        self.assertEqual(tolstoy._get_update_sql(), res1)
+        self.assertEqual(tolstoy.get_update_sql(), res1)
 
-        self.assertRaises(ValueError, pushkin._get_update_sql)
+        self.assertRaises(ValueError, pushkin.get_update_sql)
 
     def test_get_delete_sql(self):
         tolstoy = Author(name='Lev', surname='Tolstoy')
         res1 = 'DELETE FROM author WHERE id=?'
 
-        self.assertEqual(tolstoy._get_delete_sql(), res1)
+        self.assertEqual(tolstoy.get_delete_sql(), res1)
+
+class TestDatabase(unittest.TestCase):
+    def test_create(self):
+        Author._size = 0
+        if os.path.exists(DB_PATH):
+            os.remove(DB_PATH)
+        db = Database(DB_PATH)
+        db.create(Author)
+
+        self.assertIsInstance(db.conn.execute('SELECT * FROM author'),
+                              sqlite3.Cursor)
+
+        self.assertRaises(sqlite3.OperationalError, db.conn.execute,
+                                                    'SELECT * FROM book')
+
+    def test_add(self):
+        Author._size = 0
+        if os.path.exists(DB_PATH):
+            os.remove(DB_PATH)
+        db = Database(DB_PATH)
+        db.create(Author)
+        tolstoy = Author(name='Lev', surname='Tolstoy')
+        pushkin = Author(name='Alexander')
+
+        self.assertRaises(ValueError, db.add, pushkin)
+
+        pushkin.surname = 'Pushkin'
+        db.add(tolstoy)
+        db.add(pushkin)
+        res1 = [(1, 'Lev', 'Tolstoy'), (2, 'Alexander', 'Pushkin')]
+
+        self.assertEqual(db.all(Author), res1)
+
+        self.assertRaises(ValueError, db.add, tolstoy)
+
+    def test_all(self):
+        Author._size = 0
+        if os.path.exists(DB_PATH):
+            os.remove(DB_PATH)
+        db = Database(DB_PATH)
+        db.create(Author)
+        tolstoy = Author(name='Lev', surname='Tolstoy')
+        pushkin = Author(name='Alexander', surname='Pushkin')
+        db.add(tolstoy)
+
+        self.assertEqual(db.all(Author), [(1, 'Lev', 'Tolstoy')])
+
+        db.add(pushkin)
+        res1 = [(1, 'Lev', 'Tolstoy'), (2, 'Alexander', 'Pushkin')]
+
+        self.assertEqual(db.all(Author), res1)
+
+    def test_get(self):
+        Author._size = 0
+        if os.path.exists(DB_PATH):
+            os.remove(DB_PATH)
+        db = Database(DB_PATH)
+        db.create(Author)
+        tolstoy = Author(name='Lev', surname='Tolstoy')
+        pushkin = Author(name='Alexander', surname='Pushkin')
+        db.add(tolstoy)
+        db.add(pushkin)
+
+        self.assertEqual(db.get(Author, 2), [(2, 'Alexander', 'Pushkin')])
+        self.assertEqual(db.get(Author, 3), [])
+        self.assertEqual(db.get(Author, 100), [])
+        self.assertEqual(db.get(Author, -1), [])
+
+    def test_update(self):
+        Author._size = 0
+        if os.path.exists(DB_PATH):
+            os.remove(DB_PATH)
+        db = Database(DB_PATH)
+        db.create(Author)
+        tolstoy = Author(name='Lev', surname='Tolstoy')
+        pushkin = Author(name='Alexander', surname='Pushkin')
+        db.add(tolstoy)
+        db.add(pushkin)
+        tolstoy.name = 'Aleksey'
+        db.update(tolstoy)
+        res1 = [(1, 'Aleksey', 'Tolstoy'), (2, 'Alexander', 'Pushkin')]
+
+        self.assertEqual(db.all(Author), res1)
+
+    def test_delete(self):
+        Author._size = 0
+        if os.path.exists(DB_PATH):
+            os.remove(DB_PATH)
+        db = Database(DB_PATH)
+        db.create(Author)
+        tolstoy = Author(name='Lev', surname='Tolstoy')
+        pushkin = Author(name='Alexander', surname='Pushkin')
+        db.add(tolstoy)
+        db.add(pushkin)
+        db.delete(tolstoy)
+
+        self.assertEqual(db.all(Author), [(2, 'Alexander', 'Pushkin')])
+
+        db.add(tolstoy)
+        res1 = [(2, 'Alexander', 'Pushkin'), (3, 'Lev', 'Tolstoy')]
+
+        self.assertEqual(db.all(Author), res1)
+
 
 if __name__ == '__main__':
     unittest.main()
