@@ -1,3 +1,4 @@
+"""Тесты для orm.py"""
 import unittest
 import os
 import sqlite3
@@ -5,15 +6,18 @@ from orm import Database, Table, Column
 
 DB_PATH = "./test.db"
 
+
 class Author(Table):
     name = Column(str)
     surname = Column(str)
+
 
 class Book(Table):
     ISBN = Column(str)
     in_stock = Column(bool)
     cost = Column(float)
     author_id = Column(int)
+
 
 class TestColumn(unittest.TestCase):
     def test_sql_type(self):
@@ -26,6 +30,7 @@ class TestColumn(unittest.TestCase):
         self.assertEqual(col2.sql_type, 'TEXT')
         self.assertEqual(col3.sql_type, 'INTEGER')
         self.assertEqual(col4.sql_type, 'REAL')
+
 
 class TestTable(unittest.TestCase):
     def test_init(self):
@@ -58,8 +63,8 @@ class TestTable(unittest.TestCase):
     def test_get_insert_sql(self):
         tolstoy = Author(name='Lev', surname='Tolstoy')
         pushkin = Author(name='Alexander')
-        res1=('INSERT INTO author (name, surname) VALUES (?, ?);',
-             ['Lev', 'Tolstoy'])
+        res1 = ('INSERT INTO author (name, surname) VALUES (?, ?);',
+                ['Lev', 'Tolstoy'])
 
         self.assertEqual(tolstoy.get_insert_sql(), res1)
 
@@ -94,9 +99,10 @@ class TestTable(unittest.TestCase):
 
         self.assertEqual(tolstoy.get_delete_sql(), res1)
 
+
 class TestDatabase(unittest.TestCase):
     def test_create(self):
-        Author._size = 0
+        Author.size_zeroing()
         if os.path.exists(DB_PATH):
             os.remove(DB_PATH)
         db = Database(DB_PATH)
@@ -106,10 +112,10 @@ class TestDatabase(unittest.TestCase):
                               sqlite3.Cursor)
 
         self.assertRaises(sqlite3.OperationalError, db.conn.execute,
-                                                    'SELECT * FROM book')
+                          'SELECT * FROM book')
 
     def test_add(self):
-        Author._size = 0
+        Author.size_zeroing()
         if os.path.exists(DB_PATH):
             os.remove(DB_PATH)
         db = Database(DB_PATH)
@@ -129,7 +135,7 @@ class TestDatabase(unittest.TestCase):
         self.assertRaises(ValueError, db.add, tolstoy)
 
     def test_all(self):
-        Author._size = 0
+        Author.size_zeroing()
         if os.path.exists(DB_PATH):
             os.remove(DB_PATH)
         db = Database(DB_PATH)
@@ -146,7 +152,7 @@ class TestDatabase(unittest.TestCase):
         self.assertEqual(db.all(Author), res1)
 
     def test_get(self):
-        Author._size = 0
+        Author.size_zeroing()
         if os.path.exists(DB_PATH):
             os.remove(DB_PATH)
         db = Database(DB_PATH)
@@ -162,7 +168,7 @@ class TestDatabase(unittest.TestCase):
         self.assertEqual(db.get(Author, -1), [])
 
     def test_update(self):
-        Author._size = 0
+        Author.size_zeroing()
         if os.path.exists(DB_PATH):
             os.remove(DB_PATH)
         db = Database(DB_PATH)
@@ -178,7 +184,7 @@ class TestDatabase(unittest.TestCase):
         self.assertEqual(db.all(Author), res1)
 
     def test_delete(self):
-        Author._size = 0
+        Author.size_zeroing()
         if os.path.exists(DB_PATH):
             os.remove(DB_PATH)
         db = Database(DB_PATH)

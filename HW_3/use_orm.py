@@ -1,6 +1,5 @@
 import os
-from orm import Database
-from orm import Table, Column
+from orm import Database, Table, Column
 
 DB_PATH = "./test.db"
 
@@ -14,17 +13,9 @@ if __name__ == '__main__':
     db = Database(DB_PATH)
     db.create(Author)
 
-    greg = Author()
+    greg = Author(mem=3)
     greg.name = 'greg'
     greg.lucky_number = 12
-    roma = Author()
-    roma.name = 'roma'
-    roma.lucky_number = 17
-    db.add(greg)
-    db.add(roma)
-    print(db.all(Author))
-    greg.lucky_number = 13
-    db.update(greg)
-    db.delete(greg)
+    greg.mem = 3
     db.add(greg)
     print(db.all(Author))
