@@ -116,6 +116,10 @@ class Database:
         instance.record_id = None
         self.conn.commit()
 
+    def __del__(self):
+        """Закрытие соединения с БД"""
+        self.conn.close()
+
 
 class Table:
     """Класс для работы с конкретной таблицей БД"""
@@ -263,6 +267,9 @@ class Column:
     """Класс для отображения типов python в SQL типы"""
     def __init__(self, column_type):
         """Инициализация объекта-типа столбца таблицы
+
+        Keyword arguments:
+            column_type -- один из классов int, float, str, bool
 
         Returns:
             Запрос-UPDATE с '?' вместо id
