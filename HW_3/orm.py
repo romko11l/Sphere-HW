@@ -165,6 +165,16 @@ class Table:
         cls._size += 1
 
     @classmethod
+    def set_size(cls, new_size):
+        """Задание текущего размера таблицы
+        (нужно для операций с заранее заданной таблицей)
+
+        Keyword arguments:
+            new_size -- len(db.all()) - размер таблицы
+        """
+        cls._size = new_size
+
+    @classmethod
     def size_zeroing(cls):
         """Обнуляет число элементов таблицы (нужно при тестировании)"""
         cls._size = 0
