@@ -8,18 +8,39 @@ class Author(Table):
     lucky_number = Column(int)
 
 if __name__ == '__main__':
-    """
     if os.path.exists(DB_PATH):
         os.remove(DB_PATH)
-    """
     db = Database(DB_PATH)
-    #db.create(Author)
-    """
+    db.create(Author)
+
     greg = Author()
     greg.name = 'greg'
     greg.lucky_number = 12
-    greg.mem = 3
-    """
-    Author._size = len(db.all(Author))
-    print(Author.size())
+
+    roman = Author(name='roma', lucky_number=17)
+
+    alice = Author(name='alice', lucky_number=-1)
+
+    db.add(roman)
+    db.add(alice)
+    db.add(greg)
+
+    print(db.all(Author))
+
+    alice.lucky_number = 10
+
+    db.update(alice)
+
+    print(db.all(Author))
+
+    db.delete(alice)
+
+    print(db.all(Author))
+
+    print(db.get(Author, 2))
+
+    print(db.get(Author, 3))
+
+    db.add(alice)
+
     print(db.all(Author))

@@ -170,7 +170,7 @@ class Table:
         (нужно для операций с заранее заданной таблицей)
 
         Keyword arguments:
-            new_size -- len(db.all()) - размер таблицы
+            new_size -- новый размер таблицы
         """
         cls._size = new_size
 
