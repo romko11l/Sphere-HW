@@ -17,17 +17,17 @@ SELECT_WHERE_SQL = "SELECT * FROM {name} WHERE id=?;"
 UPDATE_SQL = "UPDATE {table_name} SET {query} WHERE id=?;"
 DELETE_SQL = "DELETE FROM {name} WHERE id=?"
 
-CREATE_TABLE = "{date}: Создана таблица {name}"
-INSERT_RECORD = "{date}: В таблицу {name} добавлена запись с id={id}"
-UPDATE_RECORD = "{date}: В таблице {name} обновлена запись с id={id}"
-DELETE_RECORD = "{date}: Из таблицы {name} удалена запись с id={id}"
-GET_RECORD = "{date}: Из таблицы {name} запрошена запись с id={id}"
-ALL_RECORDS = "{date}: Из таблицы {name} запрошены все записи"
+CREATE_TABLE = "%s: Создана таблица %s"
+INSERT_RECORD = "%s: В таблицу %s добавлена запись с id=%s"
+UPDATE_RECORD = "%s: В таблице %s обновлена запись с id=%s"
+DELETE_RECORD = "%s: Из таблицы %s удалена запись с id=%s"
+GET_RECORD = "%s: Из таблицы %s запрошена запись с id=%s"
+ALL_RECORDS = "%s: Из таблицы %s запрошены все записи"
 
-TABLE_INIT_ERROR = "{date}: Попытка создать невалидный объект типа {name}"
-INSERT_ERROR = "{date}: Попытка записи в таблицу {name} невалидного объекта"
-UPDATE_ERROR = "{date}: Попытка обновить запись в таблице {name} невалидным \
-объектом"
+TABLE_INIT_ERROR = "%s: Попытка создать невалидный объект типа %s"
+INSERT_ERROR = "%s: Попытка записи в таблицу %s невалидного объекта"
+UPDATE_ERROR = "%s: Попытка обновить запись в таблице %s невалидным объектом"
+
 
 class Database:
     """Класс, поддерживающий основные (CRUD) операции с БД"""
@@ -59,8 +59,7 @@ class Database:
             table -- класс-таблица
         """
         self._execute(table.get_create_sql())
-        logging.info(CREATE_TABLE.format(name=table.get_name(),
-                                         date=datetime.today()))
+        logging.info(CREATE_TABLE, datetime.today(), table.get_name())
 
     def add(self, instance):
         """Метод вставки объекта-строки таблицы в БД
@@ -78,9 +77,8 @@ class Database:
         instance.__class__.size_inc()
         instance.record_id = instance.__class__.size()
         self.conn.commit()
-        logging.info(INSERT_RECORD.format(name=instance.get_name(),
-                                          date=datetime.today(),
-                                          id=instance.record_id))
+        logging.info(INSERT_RECORD, datetime.today(), instance.get_name(),
+                     instance.record_id)
 
     def all(self, table):
         """Запрос на вывод содержимого таблицы
@@ -95,8 +93,7 @@ class Database:
         sql = table.get_select_all_sql()
         for row in self.conn.execute(sql):
             result.append(row)
-        logging.info(ALL_RECORDS.format(name=table.get_name(),
-                                          date=datetime.today()))
+        logging.info(ALL_RECORDS, datetime.today(), table.get_name())
         return result
 
     def get(self, table, record_id):
@@ -114,9 +111,8 @@ class Database:
         params = (str(record_id),)
         for row in self.conn.execute(sql, params):
             result.append(row)
-        logging.info(GET_RECORD.format(name=table.get_name(),
-                                       date=datetime.today(),
-                                       id=record_id))
+        logging.info(GET_RECORD, datetime.today(), table.get_name(),
+                     record_id)
         return result
 
     def update(self, instance):
@@ -128,9 +124,8 @@ class Database:
         sql = instance.get_update_sql()
         self._execute(sql, (str(instance.record_id),))
         self.conn.commit()
-        logging.info(UPDATE_RECORD.format(name=instance.get_name(),
-                                          date=datetime.today(),
-                                          id=instance.record_id))
+        logging.info(UPDATE_RECORD, datetime.today(), instance.get_name(),
+                     instance.record_id)
 
     def delete(self, instance):
         """Запрос на удаление строки таблицы, соответствующей instance
@@ -141,11 +136,9 @@ class Database:
         sql = instance.get_delete_sql()
         self._execute(sql, (str(instance.record_id),))
         self.conn.commit()
-        logging.info(DELETE_RECORD.format(name=instance.get_name(),
-                                          date=datetime.today(),
-                                          id=instance.record_id))
+        logging.info(DELETE_RECORD, datetime.today(), instance.get_name(),
+                     instance.record_id)
         instance.record_id = None
-
 
     def __del__(self):
         """Закрытие соединения с БД"""
@@ -170,8 +163,8 @@ class Table:
             if name in self.__class__.__dict__:
                 self.__dict__[name] = value
             else:
-                logging.error(TABLE_INIT_ERROR.format(name=self.get_name(),
-                                                      date=datetime.today()))
+                logging.error(TABLE_INIT_ERROR, datetime.today(),
+                              self.get_name())
                 raise ValueError("В таблице нет такой колонки")
 
     @property
@@ -250,8 +243,8 @@ class Table:
         for name, field in inspect.getmembers(cls):
             if isinstance(field, Column):
                 if isinstance(getattr(self, name), Column):
-                    logging.error(INSERT_ERROR.format(date=datetime.today(),
-                                                      name=self.get_name()))
+                    logging.error(INSERT_ERROR, datetime.today(),
+                                  self.get_name())
                     raise ValueError("Не задано значение колонки")
                 fields.append(name)
                 values.append(getattr(self, name))
@@ -290,8 +283,8 @@ class Table:
         for name, field in inspect.getmembers(cls):
             if isinstance(field, Column):
                 if isinstance(getattr(self, name), Column):
-                    logging.error(UPDATE_ERROR.format(date=datetime.today(),
-                                                      name=self.get_name()))
+                    logging.error(UPDATE_ERROR, datetime.today(),
+                                  self.get_name())
                     raise ValueError("Не задано значение колонки")
                 val = getattr(self, name)
                 if isinstance(getattr(self, name), str):
