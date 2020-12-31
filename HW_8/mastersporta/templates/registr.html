@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title><h2>Регистрация</h2></title>
+</head>
+<body>
+    <main>
+      <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <script src='https://www.google.com/recaptcha/api.js'></script>
+        <div class="g-recaptcha" data-sitekey=></div>
+        <button type="submit">Отправить</button>
+      </form>
+    </main>
+</body>
+</html>
