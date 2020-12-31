@@ -1,0 +1,6 @@
+/venv
+/mastersporta/db.sqlite3
+/mastersporta/mastersporta/__pycache__
+/mastersporta/shop/__pycache__
+/mastersporta/shop/tests/__pycache__
+__pycache__
